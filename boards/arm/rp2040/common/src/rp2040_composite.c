@@ -185,7 +185,8 @@ void *board_composite_connect(int port, int configid)
 {
   /* Here we are composing the configuration of the usb composite device.
    *
-   * The standard is to use one CDC/ACM and one USB mass storage device.
+   * The standard is to use one CDC/ACM and one USB mass storage device,
+   * but a dual CDC/ACM composite device is also available
    */
 
   if (configid == 0)
@@ -194,8 +195,46 @@ void *board_composite_connect(int port, int configid)
       int ifnobase = 0;
       int strbase  = COMPOSITE_NSTRIDS;
       int n = 0;
+      unsigned int ep = 1;
 
-#ifdef CONFIG_USBMSC_COMPOSITE
+#ifndef CONFIG_USBMSC_COMPOSITE
+#ifdef CONFIG_DUAL_CDCACM_COMPOSITE
+      /* Connfigure an extra CDCACM Composite device */
+      /* Ask the cdcacm driver to fill in the constants we didn't
+       * know here.
+       */
+
+      cdcacm_get_composite_devdesc(&dev[n]);
+
+      /* Overwrite and correct some values... */
+
+      /* The callback functions for the CDC/ACM class */
+
+      dev[n].classobject  = cdcacm_classobject;
+      dev[n].uninitialize = cdcacm_uninitialize;
+
+      /* Interfaces */
+
+      dev[n].devinfo.ifnobase = ifnobase;             /* Offset to Interface-IDs */
+      dev[n].minor = n;                               /* The minor interface number */
+
+      /* Strings */
+
+      dev[n].devinfo.strbase = strbase;               /* Offset to String Numbers */
+
+      /* Endpoints */
+
+      dev[n].devinfo.epno[CDCACM_EP_INTIN_IDX]   = ep++;
+      dev[n].devinfo.epno[CDCACM_EP_BULKIN_IDX]  = ep++;
+      dev[n].devinfo.epno[CDCACM_EP_BULKOUT_IDX] = ep++;
+
+      /* Count up the base numbers */
+
+      ifnobase += dev[n].devinfo.ninterfaces;
+      strbase  += dev[n].devinfo.nstrings;
+      n++;
+#endif
+#else /* CONFIG_USBMSC_COMPOSITE */
       /* Configure the mass storage device device */
 
       /* Ask the usbmsc driver to fill in the constants we didn't
@@ -222,8 +261,8 @@ void *board_composite_connect(int port, int configid)
 
       /* Endpoints */
 
-      dev[n].devinfo.epno[USBMSC_EP_BULKIN_IDX]  = 1;
-      dev[n].devinfo.epno[USBMSC_EP_BULKOUT_IDX] = 2;
+      dev[n].devinfo.epno[USBMSC_EP_BULKIN_IDX]  = ep++;
+      dev[n].devinfo.epno[USBMSC_EP_BULKOUT_IDX] = ep++;
 
       /* Count up the base numbers */
 
@@ -251,7 +290,7 @@ void *board_composite_connect(int port, int configid)
       /* Interfaces */
 
       dev[n].devinfo.ifnobase = ifnobase;             /* Offset to Interface-IDs */
-      dev[n].minor = 0;                               /* The minor interface number */
+      dev[n].minor = n;                               /* The minor interface number */
 
       /* Strings */
 
@@ -259,9 +298,9 @@ void *board_composite_connect(int port, int configid)
 
       /* Endpoints */
 
-      dev[n].devinfo.epno[CDCACM_EP_INTIN_IDX]   = 3;
-      dev[n].devinfo.epno[CDCACM_EP_BULKIN_IDX]  = 4;
-      dev[n].devinfo.epno[CDCACM_EP_BULKOUT_IDX] = 5;
+      dev[n].devinfo.epno[CDCACM_EP_INTIN_IDX]   = ep++;
+      dev[n].devinfo.epno[CDCACM_EP_BULKIN_IDX]  = ep++;
+      dev[n].devinfo.epno[CDCACM_EP_BULKOUT_IDX] = ep++;
       n++;
 #endif
 

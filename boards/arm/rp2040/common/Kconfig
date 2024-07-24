@@ -611,3 +611,16 @@ config RP2040_W5500_INT_GPIO
 		RP2040 pin number that connects to W5500 Interrupt
 
 endif # NET_W5500
+
+#####################################################################
+#  Dual CDC/ACM Configuration
+#####################################################################
+
+if CDCACM_COMPOSITE && !USBMSC_COMPOSITE
+config DUAL_CDCACM_COMPOSITE
+	bool "Dual CDC/ACM composite device"
+	default n
+	---help---
+		If y, a composite device with a second CDC/ACM
+		device will be created.
+endif # CDCACM_COMPOSITE && !USBMSC_COMPOSITE
